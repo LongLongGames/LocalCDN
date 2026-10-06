@@ -7,7 +7,7 @@
 
 services:
   local-cdn:
-    image: nginx:1.27-alpine
+    image: nginx:alpine
     container_name: local-cdn
     ports:
       - "${HOST_CDN_PORT:-12280}:80"
