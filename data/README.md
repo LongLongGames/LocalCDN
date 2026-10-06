@@ -2,81 +2,85 @@
 
 生产 OSS / CDN 保持相同路径，客户端与官网只换 BaseURL。
 
+**分层原则：游戏 → 平台 → 渠道**
+
 ```
 data/
-├── ab/                              # AssetBundle（按平台，热更用）
-│   ├── android/
-│   ├── windows/
-│   ├── ios/
-│   └── osx/
-├── app/                             # CI 构建产物落点（平台 × 渠道）
-│   ├── android/
-│   │   ├── official/
-│   │   ├── steam/
-│   │   ├── bilibili/
-│   │   └── taptap/
-│   ├── windows/
-│   │   ├── official/
-│   │   ├── steam/                   # Steam 构建产物（CI 上传，内部取包）
-│   │   └── epic/
-│   └── osx/
-│       ├── official/
-│       └── steam/
-├── download/                        # 官网下载中心（对外稳定包）
-│   ├── android/
-│   │   ├── official/                # 官网 Android 官包
-│   │   ├── bilibili/
-│   │   └── taptap/
-│   ├── windows/
-│   │   ├── official/                # 官网 Windows 官包
-│   │   ├── steam/                   # 官网「Steam 版」说明/引导（或备用包）
-│   │   └── epic/
-│   ├── osx/
-│   │   ├── official/
-│   │   └── steam/
-│   └── launcher/                    # GameLauncher 安装包（官网下载）
-│       ├── windows/
-│       └── osx/
-├── config/                          # 热更配置、版本清单
-├── localization/                    # 多语言
-└── common/                          # 公共资源
+├── ab/                                  # AssetBundle（热更）
+│   ├── match3/{android,windows,ios,osx}/
+│   ├── act/{android,windows,ios,osx}/
+│   └── flying-chess/{android,windows,ios,osx}/
+├── app/                                 # CI 构建产物落点
+│   ├── match3/
+│   │   ├── android/{official,steam,bilibili,taptap}/
+│   │   ├── windows/{official,steam,epic}/
+│   │   └── osx/{official,steam}/
+│   ├── act/          # 同上结构
+│   └── flying-chess/ # 同上结构
+├── download/                            # 官网下载中心（对外稳定包）
+│   ├── match3/
+│   │   ├── android/{official,bilibili,taptap}/
+│   │   ├── windows/{official,steam,epic}/
+│   │   └── osx/{official,steam}/
+│   ├── act/          # 同上
+│   ├── flying-chess/ # 同上
+│   └── launcher/{windows,osx}/          # GameLauncher（跨游戏）
+├── config/                              # 热更配置、版本清单（按游戏分子目录）
+│   ├── match3/version.json
+│   ├── act/version.json
+│   └── ...
+├── localization/                        # 多语言文案 / 字体 / 本地化资源（按游戏或公共）
+│   ├── common/                          # 全游戏共用（如通用 UI 文案）
+│   ├── match3/
+│   ├── act/
+│   └── flying-chess/
+└── common/                              # 跨游戏、跨平台的非 AB 公共静态资源
+    ├── images/                          # 官网/启动器共用图、品牌素材
+    ├── legal/                           # 隐私政策、用户协议等
+    └── misc/
 ```
 
-## 两类「包」的分工
+## 各目录用途（必读）
 
-| 目录 | 用途 | 谁写 | 谁读 |
-|------|------|------|------|
-| `app/` | CI 编译产物统一落点（含 Steam 构建） | CI | 内部取包、对账、灰度、再上传渠道 |
-| `download/` | 官网下载中心对外稳定包 | 发布流程（从 app 晋升或单独打） | 官网页面、用户直链下载 |
+| 目录 | 存什么 | 谁用 | 说明 |
+|------|--------|------|------|
+| `ab/{game}/{platform}/` | AssetBundle 热更包 | 游戏客户端 | 按游戏隔离，再按平台分 |
+| `app/{game}/{platform}/{channel}/` | CI 编译产物（安装包/exe） | 内部、渠道上传 | Steam 等也先落到这里 |
+| `download/{game}/...` | 官网对外稳定下载包 | 官网、用户 | 发布时从 app 晋升或单独打 |
+| `download/launcher/` | GameLauncher 安装包 | 官网 | 跨游戏，单独放 |
+| `config/{game}/` | 版本清单、热更配置 JSON | 客户端启动检查 | 例：`config/match3/version.json` |
+| **`localization/`** | **多语言文案、字体、本地化表** | **客户端 / 导表流程** | 对应组织 [Localization](https://github.com/setsuodu/Localization) 组件产物；可按游戏分子目录，公共文案放 `localization/common/` |
+| **`common/`** | **跨游戏静态资源（非 AB）** | **官网、启动器、多游戏共用** | 品牌图、法务文档、共享图标等；**不是** AssetBundle，也**不**按单一游戏隔离 |
 
-官网页面链接示例（本地）：
+### localization  vs  common
 
-```
-http://localhost:12280/download/windows/official/GameName_Setup.exe
-http://localhost:12280/download/android/official/GameName.apk
-http://localhost:12280/download/launcher/windows/GameLauncher_Setup.exe
-```
+- **localization**：给**游戏运行时**用的多语言资源（文案 key、字体、按语言拆的表），通常由导表/Localization 管线产出，客户端按语言加载。
+- **common**：给**官网 / 启动器 / 多游戏共用**的静态文件（Logo、隐私政策 HTML/PDF、通用宣传图），不进游戏热更包，也不按 match3/act 拆（除非你主动分子目录）。
 
-生产只换域名：
+两者都不是「某个游戏的 AB」，所以不放在 `ab/{game}/` 下。
 
-```
-https://cdn.yourdomain.com/download/windows/official/GameName_Setup.exe
-```
-
-## AssetBundle 路径示例
+## 路径示例
 
 | 类型 | 路径 |
 |------|------|
-| Android AB | `/ab/android/match3/xxx.ab` |
-| Windows AB | `/ab/windows/match3/xxx.ab` |
-| 版本清单 | `/config/match3/version.json` |
+| match3 Android AB | `/ab/match3/android/xxx.ab` |
+| act Windows AB | `/ab/act/windows/xxx.ab` |
+| match3 Steam CI 包 | `/app/match3/windows/steam/Game_v1.0.0.exe` |
+| match3 官网官包 | `/download/match3/windows/official/Game_Setup.exe` |
+| GameLauncher | `/download/launcher/windows/GameLauncher_Setup.exe` |
+| match3 版本清单 | `/config/match3/version.json` |
+| 公共多语言 | `/localization/common/zh-CN.json` |
+| match3 多语言 | `/localization/match3/en.json` |
+| 隐私政策 | `/common/legal/privacy.html` |
+| 品牌 Logo | `/common/images/logo.png` |
 
 ## 渠道说明
 
 | 渠道目录 | 含义 |
 |----------|------|
 | `official` | 自有 / 官网 |
-| `steam` | Steam（CI 产物进 `app/`；官网可放引导页或备用包进 `download/`） |
+| `steam` | Steam（CI → `app/`；官网入口 → `download/`） |
 | `bilibili` / `taptap` / `epic` … | 按实际上架渠道扩展 |
 
-新增渠道：在对应平台下新建目录即可，无需改 Nginx。
+新游戏：在 `ab/`、`app/`、`download/`、`config/`、`localization/` 下各建目录即可。  
+新渠道：在对应游戏 + 平台下新建目录即可，无需改 Nginx。

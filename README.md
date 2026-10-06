@@ -13,8 +13,6 @@
 |------|------|-----------|
 | local-cdn | **12280** | 80 |
 
-符合组织组件段 `12000–12999`。
-
 ## 快速开始
 
 ```bash
@@ -22,65 +20,56 @@ docker compose up -d
 curl http://localhost:12280/health   # → ok
 ```
 
-客户端 / 官网本地：
-
 ```
-BaseUrl = "http://localhost:12280/"
-```
-
-生产：
-
-```
-BaseUrl = "https://cdn.yourdomain.com/"
+BaseUrl = "http://localhost:12280/"          # 本地
+BaseUrl = "https://cdn.yourdomain.com/"      # 生产
 ```
 
-## data 目录结构
+## data 目录结构（游戏 → 平台 → 渠道）
 
 ```
 data/
-├── ab/                 # AssetBundle（按平台，热更）
-│   ├── android|windows|ios|osx/
-├── app/                # CI 构建产物（平台 × 渠道，含 steam）
-│   ├── android/{official,steam,bilibili,taptap}/
-│   ├── windows/{official,steam,epic}/
-│   └── osx/{official,steam}/
-├── download/           # 官网下载中心（对外稳定包）
-│   ├── android/{official,bilibili,taptap}/
-│   ├── windows/{official,steam,epic}/
-│   ├── osx/{official,steam}/
-│   └── launcher/{windows,osx}/    # GameLauncher 安装包
-├── config/             # 热更配置、版本清单
-├── localization/
-└── common/
+├── ab/{game}/{platform}/                    # AssetBundle 热更
+├── app/{game}/{platform}/{channel}/         # CI 构建产物
+├── download/{game}/{platform}/{channel}/    # 官网下载中心
+├── download/launcher/{windows,osx}/         # GameLauncher
+├── config/{game}/                           # 版本清单、热更配置
+├── localization/                            # 多语言（见下）
+│   ├── common/
+│   └── {game}/
+└── common/                                  # 跨游戏静态资源（见下）
+    ├── images/
+    ├── legal/
+    └── misc/
 ```
 
-### 官网下载路径示例
+`game` = match3 | act | flying-chess  
+`platform` = android | windows | ios | osx  
+`channel` = official | steam | bilibili | taptap | epic …
 
-| 内容 | 本地 URL |
-|------|----------|
-| Windows 官包 | `http://localhost:12280/download/windows/official/GameName_Setup.exe` |
-| Android 官包 | `http://localhost:12280/download/android/official/GameName.apk` |
-| GameLauncher | `http://localhost:12280/download/launcher/windows/GameLauncher_Setup.exe` |
-| Steam 引导/备用 | `http://localhost:12280/download/windows/steam/...` |
-
-### CI 产物 vs 官网下载
+### 各目录用途
 
 | 目录 | 用途 |
 |------|------|
-| `app/` | CI 编译统一落点（含 Steam 构建，内部取包、对账、再上传渠道） |
-| `download/` | 官网下载中心对外稳定包（发布时从 app 晋升或单独打） |
+| `ab/` | 各游戏 AssetBundle 热更包 |
+| `app/` | CI 产物（含 Steam 构建，内部取包） |
+| `download/` | 官网对外稳定下载包 |
+| `config/` | 版本清单等（如 `config/match3/version.json`） |
+| **`localization/`** | **多语言文案/字体/本地化表**（游戏运行时用；对应 Localization 组件产物；公共放 `localization/common/`） |
+| **`common/`** | **跨游戏静态资源**：官网/启动器品牌图、隐私政策等（**不是** AB，不按游戏热更） |
 
-Steam EXE 最终走 Steam 管道，但 **CI 仍上传到 `app/windows/steam/`**；官网需要展示的下载入口走 `download/`。
-
-### AssetBundle 示例
+### 路径示例
 
 | 类型 | 路径 |
 |------|------|
-| Android AB | `/ab/android/match3/xxx.ab` |
-| Windows AB | `/ab/windows/match3/xxx.ab` |
-| 版本清单 | `/config/match3/version.json` |
+| match3 Android AB | `/ab/match3/android/xxx.ab` |
+| match3 官网官包 | `/download/match3/windows/official/Game_Setup.exe` |
+| GameLauncher | `/download/launcher/windows/GameLauncher_Setup.exe` |
+| match3 版本清单 | `/config/match3/version.json` |
+| 公共多语言 | `/localization/common/zh-CN.json` |
+| 隐私政策 | `/common/legal/privacy.html` |
 
-新增渠道：在对应平台下新建目录即可，无需改 Nginx。
+详细约定见 [`data/README.md`](data/README.md)。
 
 ## 配置说明
 
@@ -88,6 +77,6 @@ Steam EXE 最终走 Steam 管道，但 **CI 仍上传到 `app/windows/steam/`**�
 - 挂载：`./data` → `/usr/share/nginx/html`（只读）
 
 ```bash
-HOST_CDN_PORT=12280   # 可选覆盖
+HOST_CDN_PORT=12280
 docker compose down
 ```
