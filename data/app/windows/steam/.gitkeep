@@ -1,0 +1,3 @@
+# Steam Windows 构建产物
+# CI 上传，内部取包 / 对账 / 灰度用
+# 例：GameName_v1.0.0.exe  或  GameName_Setup.exe
