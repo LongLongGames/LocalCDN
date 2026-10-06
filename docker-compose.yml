@@ -1,0 +1,23 @@
+# LocalCDN / FakeOSS
+# 本地开发用 Nginx，模拟 OSS / CDN。
+# 生产环境客户端只换 ResourceBaseUrl，零代码改动。
+#
+# 组织端口约定：Host 12280 → Container 80
+# 完整规划见：https://github.com/LongLongGames/.github/blob/main/profile/README.md §5
+
+services:
+  local-cdn:
+    image: nginx:1.27-alpine
+    container_name: local-cdn
+    ports:
+      - "${HOST_CDN_PORT:-12280}:80"
+    volumes:
+      # 把你的 AssetBundle / 热更包 / 配置表等放到 ./data 下
+      - ./data:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
