@@ -7,21 +7,24 @@
 ```
 data/
 ├── ab/                                  # AssetBundle（热更）
-│   ├── match3/{android,windows,ios,osx}/
-│   ├── act/{android,windows,ios,osx}/
-│   └── flying-chess/{android,windows,ios,osx}/
+│   ├── match3/
+│   │   ├── windows/{official,steam,epic}/
+│   │   ├── android/{official,bilibili,taptap}/
+│   │   └── ios/{official}/
+│   ├── act/{windows,android,ios}/
+│   └── flying-chess/{windows,android,ios}/
 ├── app/                                 # CI 构建产物落点
 │   ├── match3/
-│   │   ├── android/{official,steam,bilibili,taptap}/
 │   │   ├── windows/{official,steam,epic}/
-│   │   └── osx/{official,steam}/
+│   │   ├── android/{official,bilibili,taptap}/
+│   │   └── ios/{official}/
 │   ├── act/          # 同上结构
 │   └── flying-chess/ # 同上结构
 ├── download/                            # 官网下载中心（对外稳定包）
 │   ├── match3/
-│   │   ├── android/{official,bilibili,taptap}/
 │   │   ├── windows/{official,steam,epic}/
-│   │   └── osx/{official,steam}/
+│   │   ├── android/{official,bilibili,taptap}/
+│   │   └── ios/{official}/
 │   ├── act/          # 同上
 │   ├── flying-chess/ # 同上
 │   └── launcher/{windows,osx}/          # GameLauncher（跨游戏）
